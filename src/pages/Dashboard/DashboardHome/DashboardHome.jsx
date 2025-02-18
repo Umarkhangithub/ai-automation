@@ -11,7 +11,7 @@ import {
   selectLoading,
 } from "../../../Features/auth/authSlice";
 import Loader from "../../../components/Loader/Loader";
-import Card from "../../../components/dashboard/card";
+import Card from "../../../components/dashboard/Card";
 
 // Lazy load the chart component
 const ChartComponent = lazy(() =>
