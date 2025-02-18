@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+html {
+    scroll-behavior: smooth;
+  }
+  
 body {
     background: url("https://cdn.pixabay.com/photo/2022/09/27/10/27/brain-7482511_1280.jpg") no-repeat center center fixed;
     background-size: cover;

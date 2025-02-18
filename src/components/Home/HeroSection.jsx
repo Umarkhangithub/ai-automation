@@ -1,5 +1,6 @@
 import { NavLink } from "react-router-dom";
 import { Suspense, lazy } from "react";
+import { motion } from "framer-motion";
 
 // Lazy load the image to optimize performance
 const HeroImage = lazy(() => import("./HeroImage"));
@@ -15,7 +16,12 @@ const HeroSection = () => {
       <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center gap-6 p-6">
         
         {/* Left Content */}
-        <div className="md:w-1/2 text-center md:text-left space-y-4">
+        <motion.div 
+          className="md:w-1/2 text-center md:text-left space-y-4"
+          initial={{ opacity: 0, y: 30 }} // Initial state for animation
+          animate={{ opacity: 1, y: 0 }}  // Animate to full opacity and normal position
+          transition={{ duration: 0.8 }}  // Duration of the animation
+        >
           <h1 className="text-4xl md:text-5xl font-bold leading-tight">
             Supercharge Your Workflow with{" "}
             <span className="text-blue-500">AI Automation</span>
@@ -27,21 +33,33 @@ const HeroSection = () => {
           {/* CTA Buttons */}
           <div className="flex justify-center md:justify-start space-x-4">
             {NAV_LINKS.map(({ to, label, className }) => (
-              <NavLink
+              <motion.div
                 key={to}
-                to={to}
-                className={`px-6 py-3 rounded-lg text-lg transition ${className}`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}  // Slight delay for each button
               >
-                {label}
-              </NavLink>
+                <NavLink
+                  to={to}
+                  className={`px-6 py-3 rounded-lg text-lg transition ${className}`}
+                >
+                  {label}
+                </NavLink>
+              </motion.div>
             ))}
           </div>
-        </div>
+        </motion.div>
 
         {/* Right Image/Illustration (Lazy Loaded) */}
         <div className="md:w-1/2 flex justify-center">
           <Suspense fallback={<div className="w-48 h-48 bg-gray-700 animate-pulse rounded-2xl" />}>
-            <HeroImage />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.8 }} // Start with low opacity and scale down
+              animate={{ opacity: 1, scale: 1 }}    // Animate to full opacity and normal size
+              transition={{ duration: 0.8 }}         // Duration of the animation
+            >
+              <HeroImage />
+            </motion.div>
           </Suspense>
         </div>
 

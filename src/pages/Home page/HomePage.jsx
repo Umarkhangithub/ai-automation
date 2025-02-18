@@ -1,4 +1,4 @@
-import  { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import Loader from "../../components/Loader/Loader";
 
 // Lazy loading components
@@ -11,10 +11,13 @@ const FAQ = lazy(() => import("../FAQ section/FaqSection"));
 const FinalCTA = lazy(() => import("../Final CTA/FinalCTA"));
 
 const HomePage = () => {
+  useEffect(() => {
+    // Scroll to top on page load
+    window.scrollTo(0, 0);
+  }, []);
+
   return (
-    <Suspense
-      fallback={<Loader />}
-    >
+    <Suspense fallback={<Loader />}>
       <HeroSection />
       <Features />
       <ShowCase />

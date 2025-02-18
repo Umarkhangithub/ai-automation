@@ -11,7 +11,7 @@ const DashboardHome = lazy(() => import("./DashboardHome/DashboardHome"));
 const Automation = lazy(() => import("./automation/Automation"));
 const Analytics = lazy(() => import("./Reports/Analytics"));
 const Settings = lazy(() => import("./Setting/Setting"));
-const AITask = lazy(() => import("./Ai Task/AiTask"));
+const AITask = lazy(() => import("./AITask/AITask"));
 
 const navLinks = [
   { to: "/dashboard", label: "Dashboard Home", icon: <FaHome /> },
