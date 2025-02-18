@@ -21,7 +21,7 @@ import {
   selectTasks,
   selectLoading,
   selectError,
-} from "../../../features/automation/automationSlice";
+} from "../../../Features/automations/AutomationSlice";
 import { selectUser } from "../../../Features/auth/authSlice";
 import Loader from "../../../components/Loader/Loader";
 import { useNavigate } from "react-router-dom";  // Import useNavigate

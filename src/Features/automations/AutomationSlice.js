@@ -152,23 +152,47 @@ const automationSlice = createSlice({
         state.error = action.payload; // Handle error in adding task
       })
       // Update task status
+      .addCase(updateTaskStatus.pending, (state) => {
+        state.loading = true;
+      })
       .addCase(updateTaskStatus.fulfilled, (state, action) => {
         const task = state.tasks.find((task) => task.id === action.payload.taskId);
         if (task) {
           task.status = action.payload.status; // Update task status
         }
+        state.loading = false;
+      })
+      .addCase(updateTaskStatus.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload; // Handle error in updating task status
       })
       // Update task (name or status)
+      .addCase(updateTask.pending, (state) => {
+        state.loading = true;
+      })
       .addCase(updateTask.fulfilled, (state, action) => {
         const task = state.tasks.find((task) => task.id === action.payload.taskId);
         if (task) {
           task.name = action.payload.taskName;  // Update task name
           task.status = action.payload.status;  // Update task status
         }
+        state.loading = false;
+      })
+      .addCase(updateTask.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload; // Handle error in updating task
       })
       // Delete task
+      .addCase(deleteTask.pending, (state) => {
+        state.loading = true;
+      })
       .addCase(deleteTask.fulfilled, (state, action) => {
         state.tasks = state.tasks.filter((task) => task.id !== action.payload); // Remove task from state
+        state.loading = false;
+      })
+      .addCase(deleteTask.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload; // Handle error in deleting task
       });
   },
 });

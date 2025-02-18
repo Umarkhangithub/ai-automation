@@ -8,7 +8,7 @@ import testimonialReducer from "../Features/testimonials/TestimonialSlice";
 import testimonialCompanyReducer from "../Features/testimonials/TesimonialsCompanySlice";
 import pricingPlanReducer from "../Features/price/PricingPlanSlice";
 import authReducer from "../Features/auth/authSlice";
-import automationReducer from "../Features/automation/AutomationSlice";
+import automationReducer from "../Features/automations/AutomationSlice";
 import analyticsReducer from "../Features/analytics/AnalyticsSlice";
 import settingReducer from "../Features/setting/SettingSlice";
 import subscriptionReducer from "../Features/subscription/SubscriptionSlice";
@@ -37,10 +37,9 @@ const store = configureStore({
   reducer: persistedReducer,
   middleware: (getDefaultMiddleware) => {
     const middlewares = getDefaultMiddleware();
-    
+
     // Conditionally add logger middleware based on the environment
     if (import.meta.env.VITE_REACT_APP_MODE === "development") {
-      alert(import.meta.env.MODE)
       middlewares.push(logger);
     }
 

@@ -17,7 +17,7 @@ import {
   selectTasks,
   selectLoading,
   selectError,
-} from "../../../features/automation/automationSlice";
+} from "../../../Features/automations/AutomationSlice";
 import { selectUser, selectUserData } from "../../../Features/auth/authSlice";
 import { selectPlans } from "../../../Features/subscription/SubscriptionSlice";
 import { useNavigate } from "react-router-dom"; // Add useNavigate for redirect
