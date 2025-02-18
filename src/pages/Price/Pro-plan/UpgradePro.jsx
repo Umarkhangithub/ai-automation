@@ -6,68 +6,20 @@ import "react-toastify/dist/ReactToastify.css";
 import { useNavigate } from "react-router-dom";
 import { doc, setDoc } from "firebase/firestore";
 import { auth, db } from "../../../firebase/Firebase";
+import Loader from "../../../components/Loader/Loader";
+import { useSelector } from "react-redux";
+import { selectPlans, selectPlan } from "../../../Features/subscription/SubscriptionSlice";
 
 const PaymentModal = lazy(() => import("../../../components/priceing/PaymentModal"));
 
-const plans = [
-  {
-    id: "basic",
-    name: "Basic",
-    price: "$9/month",
-    description: "For individuals starting out",
-    features: [
-      "50 AI Tasks per Month",
-      "Basic Support (Email only)",
-      "Access to Core Features",
-      "No Priority Access",
-      "No Advanced Analytics",
-    ],
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    price: "$29/month",
-    description: "Perfect for growing businesses",
-    features: [
-      "Unlimited AI Tasks",
-      "Priority Support (Chat & Email)",
-      "Access to All Features",
-      "Advanced Analytics Dashboard",
-      "No Dedicated Account Manager",
-    ],
-    popular: true,
-  },
-  {
-    id: "premium",
-    name: "Premium",
-    price: "$59/month",
-    description: "Advanced features for professionals",
-    features: [
-      "Unlimited AI Tasks",
-      "24/7 Priority Support",
-      "Exclusive AI Features",
-      "Real-time Data Insights",
-      "Monthly AI Training Reports",
-    ],
-  },
-  {
-    id: "enterprise",
-    name: "Enterprise",
-    price: "$99/month",
-    description: "Custom AI solutions for enterprises",
-    features: [
-      "Custom AI Workflows",
-      "Dedicated Account Manager",
-      "24/7 Support & Consulting",
-      "Access to AI API Integrations",
-      "VIP Access to New Features",
-    ],
-  },
-];
+
 
 const UpgradePro = () => {
-  const [selectedPlan, setSelectedPlan] = useState(null);
+
+  const [selectedPlan, setSelectedPlan] = useState(selectPlan);
   const navigate = useNavigate();
+
+  const plans = useSelector(selectPlans);
 
   const handlePaymentSuccess = async () => {
     if (!auth.currentUser) {
@@ -147,7 +99,7 @@ const UpgradePro = () => {
           ))}
         </div>
 
-        <Suspense fallback={<div className="text-center text-gray-500 mt-6">Loading Payment Modal...</div>}>
+        <Suspense fallback={<Loader />}>
           {selectedPlan && (
             <PaymentModal
               selectedPlan={selectedPlan}

@@ -6,6 +6,8 @@ import {
   onSnapshot,
   setDoc,
   collection,
+  addDoc,
+  updateDoc,
   query,
   where,
   getDocs,
@@ -23,20 +25,30 @@ export const fetchUserData = createAsyncThunk(
   "auth/fetchUserData",
   async (uid) => {
     const userDocRef = doc(db, "users", uid);
-    return new Promise((resolve) => {
-      onSnapshot(userDocRef, async (docSnap) => {
-        if (docSnap.exists()) {
-          resolve(docSnap.data());
-        } else {
-          const newUser = {
-            email: auth.currentUser.email,
-            createdAt: new Date(),
-            subscription: "free",
-          };
-          await setDoc(userDocRef, newUser);
-          resolve(newUser);
+    
+    return new Promise((resolve, reject) => {
+      const unsubscribe = onSnapshot(
+        userDocRef,
+        async (docSnap) => {
+          if (docSnap.exists()) {
+            resolve(docSnap.data());
+          } else {
+            const newUser = {
+              email: auth.currentUser.email,
+              createdAt: new Date(),
+              subscription: "free", // Default to free plan if no user data
+            };
+            await setDoc(userDocRef, newUser);
+            resolve(newUser);
+          }
+        },
+        (error) => {
+          reject(error);
         }
-      });
+      );
+      
+      // Cleanup on unmount or change
+      return unsubscribe;
     });
   }
 );
@@ -47,15 +59,18 @@ export const fetchUserTasks = createAsyncThunk(
   async (uid) => {
     const tasksQuery = query(collection(db, "ai_tasks"), where("userId", "==", uid));
     const taskSnapshot = await getDocs(tasksQuery);
+    
     const tasks = taskSnapshot.docs.map((doc) => doc.data());
 
-    return {
-      totalTasks: tasks.length,
-      pendingTasks: tasks.filter((task) => task.status === "Pending").length,
-      successRate: tasks.length
-        ? Math.round((tasks.filter((task) => task.status === "Completed").length / tasks.length) * 100)
-        : 0,
-    };
+    // Calculate AI task statistics
+    const totalTasks = tasks.length;
+    const pendingTasks = tasks.filter((task) => task.status === "Pending").length;
+    const completedTasks = tasks.filter((task) => task.status === "Completed").length;
+    const successRate = totalTasks
+      ? Math.round((completedTasks / totalTasks) * 100)
+      : 0;
+
+    return { totalTasks, pendingTasks, successRate };
   }
 );
 
@@ -75,19 +90,31 @@ const authSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    builder.addCase(fetchUserData.fulfilled, (state, action) => {
-      state.userData = action.payload;
-      state.loading = false;
-    });
-    builder.addCase(fetchUserTasks.fulfilled, (state, action) => {
-      state.aiStats = action.payload;
-    });
+    builder
+      .addCase(fetchUserData.fulfilled, (state, action) => {
+        state.userData = action.payload;
+        state.loading = false;
+      })
+      .addCase(fetchUserTasks.fulfilled, (state, action) => {
+        state.aiStats = action.payload;
+      })
+      .addCase(fetchUserData.rejected, (state, action) => {
+        state.loading = false;
+        console.error("Error fetching user data:", action.error.message);
+      })
+      .addCase(fetchUserTasks.rejected, (state, action) => {
+        state.loading = false;
+        console.error("Error fetching user tasks:", action.error.message);
+      });
   },
 });
 
 export const { setUser, clearUser } = authSlice.actions;
+
+// Selectors to access state in components
 export const selectUser = (state) => state.auth.user;
 export const selectUserData = (state) => state.auth.userData;
 export const selectAiStats = (state) => state.auth.aiStats;
 export const selectLoading = (state) => state.auth.loading;
+
 export default authSlice.reducer;

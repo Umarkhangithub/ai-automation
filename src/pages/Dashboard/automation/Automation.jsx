@@ -1,89 +1,109 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
-import { FaPlay, FaCheckCircle, FaSpinner, FaTrash, FaEdit, FaSave, FaPlus, FaTimes } from "react-icons/fa";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import {
+  FaPlay,
+  FaCheckCircle,
+  FaSpinner,
+  FaPlus,
+  FaTimes,
+  FaSave,
+} from "react-icons/fa";
 import { motion } from "framer-motion";
 import { toast } from "react-toastify";
-import { auth, onAuthStateChanged, db, collection, addDoc, onSnapshot, updateDoc, deleteDoc, doc, query, where, getDocs } from "../../../firebase/Firebase";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  setUser,
+  fetchUserTasks,
+  addTask,
+  selectTasks,
+  selectLoading,
+  selectError,
+} from "../../../features/automation/automationSlice";
+import { selectUser, selectUserData } from "../../../Features/auth/authSlice";
+import { selectPlans } from "../../../Features/subscription/SubscriptionSlice";
+import { useNavigate } from "react-router-dom"; // Add useNavigate for redirect
 
 const Automation = () => {
-  const [tasks, setTasks] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [user, setUser] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [customTaskName, setCustomTaskName] = useState("");
-  const navigate = useNavigate();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const dispatch = useDispatch();
+  const navigate = useNavigate(); // Hook to handle navigation
+
+  const plans = useSelector(selectPlans);
+  const { email = "", subscription = "" } = useSelector(selectUserData) || {};
+  const user = useSelector(selectUser);
+  const tasks = useSelector(selectTasks);
+  const loading = useSelector(selectLoading);
+  const error = useSelector(selectError);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-    });
-    return () => unsubscribe();
-  }, []);
+    if (user) {
+      dispatch(setUser(user));
+      dispatch(fetchUserTasks(user.uid));
+    } else {
+      dispatch(setUser(null));
+    }
+  }, [dispatch, user]);
 
-  useEffect(() => {
-    if (!user) return;
-    const q = query(collection(db, "ai_tasks"), where("userId", "==", user.uid));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setTasks(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
-    });
-    return () => unsubscribe();
-  }, [user]);
+  const checkSubscriptionLimit = useMemo(() => {
+    return async () => {
+      if (!user) return false;
 
-  const checkSubscriptionLimit = async () => {
-    if (!user) return false;
-    const userTasksQuery = query(collection(db, "ai_tasks"), where("userId", "==", user.uid));
-    const taskSnapshot = await getDocs(userTasksQuery);
-    const taskCount = taskSnapshot.size;
-    const taskLimit = 5; // Example limit, adjust as needed
-    return taskCount >= taskLimit;
-  };
+      // Dynamically get the task limit based on the user's plan
+      const currentPlan = plans.find((plan) => plan.id === subscription);
+      const taskLimit = currentPlan ? currentPlan.taskLimit : 50; // Default to 50 if no plan is found
+
+      return tasks.length >= taskLimit;
+    };
+  }, [user, tasks, plans, subscription]);
 
   const triggerTask = useCallback(async () => {
     if (!user) return toast.error("You must be logged in to start a task.");
-    if (await checkSubscriptionLimit()) return navigate("/upgrade-pro-plan");
-    
-    setLoading(true);
-    try {
-      const docRef = await addDoc(collection(db, "ai_tasks"), {
-        name: "AI Data Processing",
-        status: "Pending",
-        createdAt: new Date(),
-        userId: user.uid,
-      });
-      toast.success("Task started successfully!");
-      setTimeout(async () => {
-        await updateDoc(doc(db, "ai_tasks", docRef.id), { status: "Completed" });
-        setLoading(false);
-      }, 5000);
-    } catch (error) {
-      toast.error("Error starting task.");
-      setLoading(false);
+    const isLimitReached = await checkSubscriptionLimit();
+    if (isLimitReached) {
+      toast.error("Task limit reached. Redirecting to upgrade page...");
+      setTimeout(() => {
+        navigate("/upgrade-pro-plan"); // Redirect to upgrade page after a short delay
+      }, 2000); // 2 seconds delay before redirect
+      return;
     }
-  }, [user, navigate]);
 
-  const addCustomTask = async (e) => {
-    e.preventDefault();
-    if (!user) return toast.error("You must be logged in to add a task.");
-    if (!customTaskName.trim()) return toast.error("Task name cannot be empty.");
-    if (await checkSubscriptionLimit()) return navigate("/upgrade-pro-plan");
-    
-    try {
-      const docRef = await addDoc(collection(db, "ai_tasks"), {
-        name: customTaskName,
-        status: "Pending",
-        createdAt: new Date(),
-        userId: user.uid,
-      });
-      toast.success("Custom task added!");
-      setTimeout(async () => {
-        await updateDoc(doc(db, "ai_tasks", docRef.id), { status: "Completed" });
-      }, 5000);
-      setCustomTaskName("");
-      setIsModalOpen(false);
-    } catch (error) {
-      toast.error("Error adding custom task.");
+    dispatch(addTask({ taskName: "AI Data Processing", userId: user.uid }));
+  }, [user, dispatch, checkSubscriptionLimit, navigate]);
+
+  const addCustomTask = useCallback(
+    async (e) => {
+      e.preventDefault();
+      if (!user) return toast.error("You must be logged in to add a task.");
+      if (!customTaskName.trim())
+        return toast.error("Task name cannot be empty.");
+      const isLimitReached = await checkSubscriptionLimit();
+      if (isLimitReached) {
+        toast.error("Task limit reached. Redirecting to upgrade page...");
+        setTimeout(() => {
+          navigate("/upgrade-pro-plan"); // Redirect to upgrade page after a short delay
+        }, 2000); // 2 seconds delay before redirect
+        return;
+      }
+
+      try {
+        await dispatch(addTask({ taskName: customTaskName, userId: user.uid }));
+        setCustomTaskName(""); // Reset input field after successful task creation
+        setIsModalOpen(false); // Close the modal
+        toast.success("Task added successfully!");
+      } catch (error) {
+        toast.error("Error adding task. Please try again.");
+      }
+    },
+    [user, customTaskName, dispatch, checkSubscriptionLimit, navigate]
+  );
+
+  useEffect(() => {
+    if (error) {
+      toast.error(`Error: ${error}`);
     }
-  };
+  }, [error]);
+
+  const currentPlan = plans.find((plan) => plan.id === subscription);
 
   return (
     <div className="p-6 bg-gray-900 min-h-screen text-white">
@@ -91,9 +111,19 @@ const Automation = () => {
       <p className="opacity-80">Trigger AI tasks and track their status.</p>
       {user && (
         <div className="mt-4 bg-gray-700 p-4 rounded-lg shadow-md">
-          <p>👤 <strong>User:</strong> {user.email}</p>
+          <p>
+            👤 <strong>User:</strong> {email}
+          </p>
+          <p>
+            🌟 <strong>Plan:</strong> {currentPlan?.name || "N/A"}
+          </p>
+          <p>
+            📝 <strong>Task Limit:</strong>{" "}
+            {currentPlan ? currentPlan.taskLimit : "N/A"} tasks
+          </p>
         </div>
       )}
+
       <motion.button
         whileTap={{ scale: 0.9 }}
         className="mt-6 px-6 py-3 bg-blue-500 text-white rounded-lg flex items-center space-x-2 hover:bg-blue-700 transition"
@@ -119,7 +149,11 @@ const Automation = () => {
               whileHover={{ scale: 1.02 }}
             >
               <span className="font-semibold">{task.name}</span>
-              {task.status === "Completed" ? <FaCheckCircle className="text-green-500" /> : <FaSpinner className="text-yellow-400 animate-spin" />}
+              {task.status === "Completed" ? (
+                <FaCheckCircle className="text-green-500" />
+              ) : (
+                <FaSpinner className="text-yellow-400 animate-spin" />
+              )}
             </motion.li>
           ))}
         </ul>
@@ -138,8 +172,16 @@ const Automation = () => {
                 required
               />
               <div className="flex justify-end space-x-2 mt-4">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 bg-red-500 rounded"> <FaTimes /> Cancel </button>
-                <button type="submit" className="px-4 py-2 bg-blue-500 rounded"> <FaSave /> Add Task </button>
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 bg-red-500 rounded"
+                >
+                  <FaTimes /> Cancel
+                </button>
+                <button type="submit" className="px-4 py-2 bg-blue-500 rounded">
+                  <FaSave /> Add Task
+                </button>
               </div>
             </form>
           </div>
